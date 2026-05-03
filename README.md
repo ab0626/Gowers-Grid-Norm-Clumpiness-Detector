@@ -15,7 +15,7 @@ This repository is a **small, fully documented experimental lab** for the **arit
 2. [Which entry point? (decision branches)](#2-which-entry-point-decision-branches)
 3. [Repository layout](#3-repository-layout)
 4. [Mathematical definitions](#4-mathematical-definitions)
-5. [Paper mapping and research landscape](#5-paper-mapping-and-research-landscape)
+5. [Paper mapping and research landscape](#5-paper-mapping-and-research-landscape) ([§5.2 scope vs the paper](#52-scope-vs-the-paper))
 6. [Corner-free lift $x+2y\in S$ (3-AP $\leftrightarrow$ corner)](#6-corner-free-lift-x--2y-in-s-3-ap--corner)
 7. [Monte Carlo vs exact enumeration](#7-monte-carlo-vs-exact-enumeration)
 8. [Heuristic density increment](#8-heuristic-density-increment)
@@ -35,49 +35,77 @@ See also [`docs/images/README.md`](docs/images/README.md) for a file manifest.
 
 **Rendering note:** Figures 1–7 use **PNG** in the README: GitHub’s Markdown `<img>` pipeline is **unreliable for `.svg`** (sanitization / CSP), so diagrams are rasterized for stable display. **Editable SVG sources** (where present) stay in `docs/images/`; regenerate bitmaps with `python scripts/gen_readme_pngs.py` and `python scripts/export_mask_heatmaps.py --scale 14`.
 
-**Math:** Formulas use GitHub’s LaTeX rendering: `$…$` for inline math and `$$…$$` for display (see [Writing mathematical expressions](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/writing-mathematical-expressions)).
+**Math (LaTeX on GitHub):** Use `$…$` for inline formulas and `$$…$$` on their own lines for display — same conventions as LaTeX (e.g. `\mathbf{1}_A`, `\mathbb{E}`, `\Theta`, `\subseteq`). If a subscript or delimiter looks wrong (Markdown stealing `_`), escape with `\_` inside the formula. See [Writing mathematical expressions](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/writing-mathematical-expressions).
 
-<p align="center">
-  <img src="docs/images/fig-corner-to-ap.png" alt="Corner in the grid maps to a three-term arithmetic progression on the line under the x plus 2y lift" width="720"/>
-  <br/>
-  <sub><b>Figure 1.</b> A grid <b>corner</b> $(x,y),\,(x+d,y),\,(x,y+d)$ maps under the lift $z=x+2y$ to three values $z,\,z+d,\,z+2d$—a <b>three-term AP</b> on the line (integer specialization).</sub>
-</p>
+<div align="center">
+<img src="docs/images/fig-corner-to-ap.png" alt="Corner in the grid maps to a three-term arithmetic progression on the line under the x plus 2y lift" width="720"/>
+</div>
 
-<p align="center">
-  <img src="docs/images/fig-k22-bipartite.png" alt="Complete bipartite graph K22 connecting two row vertices to two column vertices" width="760"/>
-  <br/>
-  <sub><b>Figure 2.</b> The $K_{2,2}$ pattern behind the <b>box norm</b> $G(2,2)$: four factors $f(x_1,y_1)f(x_1,y_2)f(x_2,y_1)f(x_2,y_2)$.</sub>
-</p>
+<div align="center">
 
-<p align="center">
-  <img src="docs/images/fig-k2k-bipartite.png" alt="Bipartite graph K2k with two left vertices and k right vertices" width="820"/>
-  <br/>
-  <sub><b>Figure 3.</b> The $K_{2,k}$ pattern for $\|\cdot\|_{G(2,k)}$ (enumerated exactly by <code>exact_g2k.py</code> on toy grids).</sub>
-</p>
+**Figure 1.** A grid **corner** $(x,y),\,(x+d,y),\,(x,y+d)$ maps under the lift $z=x+2y$ to three values $z,\,z+d,\,z+2d$ — a **three-term AP** on the line (integer specialization).
 
-<p align="center">
-  <img src="docs/images/fig-balanced-indicator.png" alt="Balanced indicator f equals 1_A minus alpha" width="760"/>
-  <br/>
-  <sub><b>Figure 4.</b> Balanced indicator $f_A=\mathbf 1_A-\alpha$ (center of many proof estimates) vs raw $\mathbf 1_A$ in demos.</sub>
-</p>
+</div>
 
-<p align="center">
-  <img src="docs/images/fig-mc-vs-exact.png" alt="Comparison of Monte Carlo branch versus exact enumeration branch" width="780"/>
-  <br/>
-  <sub><b>Figure 5.</b> Two evaluation <b>branches</b>: Monte Carlo (scalable; sparse $\alpha$ $\Rightarrow$ noisy) vs exact (noise-free; tuple budget cap).</sub>
-</p>
+<div align="center">
+<img src="docs/images/fig-k22-bipartite.png" alt="Complete bipartite graph K22 connecting two row vertices to two column vertices" width="760"/>
+</div>
 
-<p align="center">
-  <img src="docs/images/fig-density-increment.png" alt="Grid with highlighted subrectangle for density increment heuristic" width="760"/>
-  <br/>
-  <sub><b>Figure 6.</b> Heuristic <code>best_rectangle_lift</code>: maximize rectangle density $|A\cap R|/|R|$ vs global $\alpha=|A|/|\Omega|$.</sub>
-</p>
+<div align="center">
 
-<p align="center">
-  <img src="docs/images/mask-lift-vs-random.png" alt="Side by side grayscale masks corner free lift versus uniform random same size" width="520"/>
-  <br/>
-  <sub><b>Figure 7.</b> <b>Corner-free lift</b> vs <b>uniform random</b> with the same $|A|$. Regenerate: <code>python scripts/export_mask_heatmaps.py --n 16 --scale 14 --seed 0</code> (higher <code>--scale</code> = sharper cells).</sub>
-</p>
+**Figure 2.** The $K_{2,2}$ pattern behind the **box norm** $G(2,2)$: four factors $f(x_1,y_1)\,f(x_1,y_2)\,f(x_2,y_1)\,f(x_2,y_2)$.
+
+</div>
+
+<div align="center">
+<img src="docs/images/fig-k2k-bipartite.png" alt="Bipartite graph K2k with two left vertices and k right vertices" width="820"/>
+</div>
+
+<div align="center">
+
+**Figure 3.** The $K_{2,k}$ pattern for $\|\cdot\|_{G(2,k)}$ (enumerated exactly by `exact_g2k.py` on toy grids).
+
+</div>
+
+<div align="center">
+<img src="docs/images/fig-balanced-indicator.png" alt="Balanced indicator f equals 1_A minus alpha" width="760"/>
+</div>
+
+<div align="center">
+
+**Figure 4.** Balanced indicator $f_A=\mathbf{1}_A-\alpha$ (center of many proof estimates) vs raw $\mathbf{1}_A$ in demos.
+
+</div>
+
+<div align="center">
+<img src="docs/images/fig-mc-vs-exact.png" alt="Comparison of Monte Carlo branch versus exact enumeration branch" width="780"/>
+</div>
+
+<div align="center">
+
+**Figure 5.** Two evaluation **branches:** Monte Carlo (scalable; sparse $\alpha$ $\Rightarrow$ noisy) vs exact (noise-free; tuple budget cap).
+
+</div>
+
+<div align="center">
+<img src="docs/images/fig-density-increment.png" alt="Grid with highlighted subrectangle for density increment heuristic" width="760"/>
+</div>
+
+<div align="center">
+
+**Figure 6.** Heuristic `best_rectangle_lift`: maximize rectangle density $|A\cap R|/|R|$ vs global $\alpha=|A|/|\Omega|$.
+
+</div>
+
+<div align="center">
+<img src="docs/images/mask-lift-vs-random.png" alt="Side by side grayscale masks corner free lift versus uniform random same size" width="520"/>
+</div>
+
+<div align="center">
+
+**Figure 7.** **Corner-free lift** vs **uniform random** with the same $|A|$. Regenerate: `python scripts/export_mask_heatmaps.py --n 16 --scale 14 --seed 0` (higher `--scale` = sharper cells).
+
+</div>
 
 ---
 
@@ -100,7 +128,7 @@ flowchart TD
 - **`grid_norm.py`**: quickest random vs artificial **clump**; good for “high vs low norm” intuition at modest density.
 - **`behrend.py`**: Behrend **raster** embedding is **not** corner-free; it is a **structured sparse** control at matched $|A|$.
 - **`corner_lift.py`**: **Proven** corner-free (integer lift + integer 3-AP-free $S$); compare to random at same $|A|$.
-- **`exact_g2k.py`**: **Exact** $\|\mathbf 1_A\|_{G(2,k)}$ for $k=2,3,\ldots$ on lift vs random—no Monte Carlo variance.
+- **`exact_g2k.py`**: **Exact** $\|\mathbf{1}_A\|_{G(2,k)}$ for $k=2,3,\ldots$ on lift vs random—no Monte Carlo variance.
 
 </details>
 
@@ -131,9 +159,9 @@ flowchart LR
 |------|------|
 | `grid_norm.py` | Definitions: `grid_norm`, `grid_norm_exact`, `balanced_indicator`, `best_rectangle_lift`, toy generators. |
 | `behrend.py` | Behrend shell $S\subset\{0,\ldots,M-1\}$; raster $n\times n$ mask; random control at same $|A|$. |
-| `corner_lift.py` | Lift $A_{x,y}=\mathbf 1\{x+2y\in S\}$; brute corner check; MC comparison vs random. |
+| `corner_lift.py` | Lift $A_{x,y}=\mathbf{1}\{x+2y\in S\}$; brute corner check; MC comparison vs random. |
 | `exact_g2k.py` | CLI: exact $\|\cdot\|_{G(2,k)}$ scan (tuple budget cap). |
-| `docs/images/*.svg` | Static figures referenced by this README. |
+| `docs/images/*.png` (+ optional `*.svg` sources) | README gallery bitmaps; regenerate with `gen_readme_pngs.py` / `export_mask_heatmaps.py`. |
 | `requirements.txt` | `numpy` pin (minimal). |
 
 ---
@@ -195,7 +223,7 @@ Exact enumeration cost is $\Theta(n^{k} m^{\ell})$ **times** $\Theta(k\ell)$ to 
 For a set $A\subseteq \Omega_1\times\Omega_2$, writing $\alpha = |A|/|\Omega_1\times\Omega_2|$,
 
 $$
-f_A(x,y) \;=\; \mathbf 1_A(x,y) - \alpha,
+f_A(x,y) \;=\; \mathbf{1}_A(x,y) - \alpha,
 \qquad
 \mathbb E[f_A]=0.
 $$
@@ -211,7 +239,7 @@ Many proof steps control **$f_A$** (signed); our Monte Carlo demos sometimes use
 | `lift_mask_x_plus_2y` | Projection / AP–corner equivalence (§1–2) | Turn a **1D** 3-AP-free $S$ into a **2D** corner-free $A$ via $x+2y\in S$. |
 | `behrend_indices` | Behrend-type extremal AP-free sets | Build explicit **3-AP-free** $S\subset\mathbb Z$ for the lift. |
 | `corner_free_lift_from_behrend` | Packaged lift demo | **Proven** corner-free $n\times n$ mask from Behrend $S\subset\{0,\ldots,3n-3\}$. |
-| `compare_corner_free_lift_vs_random` | Lemma 5.11 / multilinear statistics | Same $|A|$: compare $\|\mathbf 1_A\|_{G(k,\ell)}$ on lift vs uniform random (**statistic only**). |
+| `compare_corner_free_lift_vs_random` | Lemma 5.11 / multilinear statistics | Same $|A|$: compare $\|\mathbf{1}_A\|_{G(k,\ell)}$ on lift vs uniform random (**statistic only**). |
 | `behrend_matrix` | Extremal AP-free density (§1 spirit) | Structured **non**–corner-free raster control at matched $|A|$. |
 | `grid_norm` | Lemma 5.11 family | Same $K_{k,\ell}$ multilinear average on any mask. |
 | `best_rectangle_lift` | Theorem 3.4 (sifting) | Heuristic dense sub-rectangle / “zoom-in” toy. |
@@ -257,6 +285,20 @@ flowchart TB
 The **left branch** is the true proof pipeline in arXiv:2504.07006 (highly compressed). The **right branch** lists the closest **code hooks**: we can generate **corner-free** toy data, form **balanced** functions, measure **grid norms** exactly or approximately, and run a **rectangle search** toy. What we **do not** ship is a faithful implementation of **relative sifting** or the full **density increment machine**—those require the paper’s full graph of lemmas.
 
 </details>
+
+### 5.2 Scope vs the paper
+
+The theorem and full proof live in [arXiv:2504.07006](https://arxiv.org/abs/2504.07006). **This repository is not a line-by-line implementation** — it is a small computational lab (definitions + toy experiments).
+
+| Paper topic (high level) | This repository |
+|--------------------------|-----------------|
+| Quantitative bound $\lvert A\rvert\le \lvert G\rvert^{2}\exp\!\bigl(-(\log \lvert G\rvert)^{\Omega(1)}\bigr)$ for corner-free $A\subseteq G\times G$ | **Not** proved or verified by code |
+| Proof ingredients: combinatorial spreadness, **relative sifting**, Bohr sets, finite-field case, **density increment** iteration | **Not** implemented (except heuristic `best_rectangle_lift`) |
+| **Grid norms** $\|\cdot\|_{G(k,\ell)}$, balanced $f_A$, parameters like $G(2,k)$ at $\log$-scale | **Implemented** as definitions + Monte Carlo / exact **evaluators** on toy grids |
+| Corner $\leftrightarrow$ 3-AP via lift $x+2y$; Behrend-type AP-free shells | **Implemented** in a small-integer demo setting |
+| Communication complexity, 3D corners coloring, … | **Out of scope** |
+
+See §12 for cautions (sparse norms, `max_tuples`, groups beyond the default integer lift).
 
 ---
 
@@ -340,7 +382,7 @@ python exact_g2k.py --n 8 --seed 0 --max-tuples 25000000 --k-cap 8
 | `grid_norm_exact(f,k,l,max_tuples=…)` | exact $\|f\|_{G(k,\ell)}$ with refusal guard |
 | `exact_grid_norm_tuple_count(n,m,k,l)` | $n^k m^\ell$ |
 | `suggested_grid_size_from_density(alpha)` | $\lceil\ln(1/\alpha)\rceil$ (clamped $\ge 2$) |
-| `balanced_indicator(mask)` | $\mathbf 1_A-\alpha$ |
+| `balanced_indicator(mask)` | $\mathbf{1}_A-\alpha$ |
 | `balanced_nonneg_clip` | affine re-map to $[0,1]$ for MC demos |
 | `best_rectangle_lift(mask)` | best rectangle lift heuristic |
 | `random_binary_matrix`, `clumped_matrix` | toy generators |
