@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 300" width="760" height="300">
+  <style>
+    .t { font: 15px system-ui, Segoe UI, sans-serif; fill: #222; }
+    .h { font: 18px system-ui, Segoe UI, sans-serif; font-weight: 600; fill: #0b3d6d; }
+    .n { fill: #1565c0; stroke: #fff; stroke-width: 2; }
+    .m { fill: #c62828; stroke: #fff; stroke-width: 2; }
+    .e { stroke: #90a4ae; stroke-width: 1.2; }
+  </style>
+  <rect width="100%" height="100%" fill="#fafafa"/>
+  <text x="20" y="34" class="h">K‚,‚ pattern behind the box norm G(2,2)</text>
+  <text x="20" y="58" class="t">Vertices x,x‚ (rows) and y,y‚ (cols); each edge (i,j) carries f(xb,y|). Product has 4 factors.</text>
+  <!-- left nodes x1 x2 -->
+  <circle cx="120" cy="120" r="22" class="n"/>
+  <circle cx="120" cy="220" r="22" class="n"/>
+  <text x="102" y="126" class="t" fill="#fff">x</text>
+  <text x="102" y="226" class="t" fill="#fff">x‚</text>
+  <!-- right nodes y1 y2 -->
+  <circle cx="520" cy="120" r="22" class="m"/>
+  <circle cx="520" cy="220" r="22" class="m"/>
+  <text x="504" y="126" class="t" fill="#fff">y</text>
+  <text x="504" y="226" class="t" fill="#fff">y‚</text>
+  <!-- edges -->
+  <line x1="142" y1="120" x2="498" y2="120" class="e"/>
+  <line x1="142" y1="120" x2="498" y2="220" class="e"/>
+  <line x1="142" y1="220" x2="498" y2="120" class="e"/>
+  <line x1="142" y1="220" x2="498" y2="220" class="e"/>
+  <text x="560" y="150" class="t">ft_G(2,2) = 5<[ f(x,y)f(x,y‚)f(x‚,y)f(x‚,y‚) ]</text>
+</svg>

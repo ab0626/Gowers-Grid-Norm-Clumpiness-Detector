@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: pip install -r requirements-dev.txt
+      - name: Tests
+        run: python scripts/run_tests.py -v
+      - name: Demos (smoke)
+        run: |
+          python grid_norm.py
+          python behrend.py
+          python corner_lift.py
+          python exact_g2k.py --n 7 --k-cap 4
+          python scripts/export_mask_heatmaps.py --n 10 --seed 0 --out docs/images/mask-lift-vs-random.png
