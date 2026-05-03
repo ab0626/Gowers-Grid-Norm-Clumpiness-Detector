@@ -13,6 +13,7 @@ EXPECTED = [
     "fig-mc-vs-exact.png",
     "fig-density-increment.png",
     "mask-lift-vs-random.png",
+    "phase-transition-behrend-vs-random.png",
 ]
 
 

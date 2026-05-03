@@ -13,6 +13,7 @@ Paths are relative to the **repository root**.
 | 5 | `fig-mc-vs-exact.png` | same |
 | 6 | `fig-density-increment.png` | same |
 | 7 | `mask-lift-vs-random.png` | `python scripts/export_mask_heatmaps.py --n 16 --scale 14` |
+| 8 (empirical) | `phase-transition-behrend-vs-random.png` | `python scripts/phase_transition_sweep.py` (see README §15.2) |
 
 **Why PNG in the README?** GitHub’s Markdown renderer often shows **broken icons** for `<img src="…svg">`. PNGs are reliable; SVGs here are optional sources for hand-editing (see `fig-*.svg`).
 

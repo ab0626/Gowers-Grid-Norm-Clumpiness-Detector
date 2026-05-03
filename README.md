@@ -25,12 +25,13 @@ This repository is a **small, fully documented experimental lab** for the **arit
 12. [Limitations and honest scope](#12-limitations-and-honest-scope)
 13. [Dependencies](#13-dependencies)
 14. [Automated tests, CI, and release checks](#14-automated-tests-ci-and-release-checks)
+15. [Research path, empirical boundaries, and ecosystem scope](#15-research-path-empirical-boundaries-and-ecosystem-scope)
 
 ---
 
 ## 1. Visual overview (figures)
 
-Gallery order: **geometry / norms** (Figures 1–3) → **proof-side object** (4) → **computation branches** (5) → **sifting toy** (6) → **empirical masks** (7).  
+Gallery order: **geometry / norms** (Figures 1–3) → **proof-side object** (4) → **computation branches** (5) → **sifting toy** (6) → **empirical masks** (7); optional **phase sweep** (Figure 8, §15.2).  
 See also [`docs/images/README.md`](docs/images/README.md) for a file manifest.
 
 **Rendering note:** Figures 1–7 use **PNG** in the README: GitHub’s Markdown `<img>` pipeline is **unreliable for `.svg`** (sanitization / CSP), so diagrams are rasterized for stable display. **Editable SVG sources** (where present) stay in `docs/images/`; regenerate bitmaps with `python scripts/gen_readme_pngs.py` and `python scripts/export_mask_heatmaps.py --scale 14`.
@@ -506,3 +507,46 @@ Runs the four demos, regenerates **Figures 1–7** PNGs, then `scripts/run_tests
 ### 14.4 GitHub Actions
 
 On push/PR to `main` or `master`, [`.github/workflows/ci.yml`](.github/workflows/ci.yml) installs `requirements-dev.txt`, runs the full test suite, smoke-runs the demos, and rebuilds all gallery **PNG**s so `test_readme_assets` stays green.
+
+---
+
+## 15. Research path, empirical boundaries, and ecosystem scope
+
+### 15.1 Inter-repository “Corners lab” path
+
+This repository is intentionally **one instrument** in a larger workflow. A typical **research path** (plug in your own clone URLs) is:
+
+| Step | Role | What to use |
+|------|------|-------------|
+| 1. **Generate** | Extreme / structured **masks** (Behrend-type AP-free shell, corner-free lift elsewhere, …) | Behrend / generator repo — e.g. `behrend.py --export-pipe` here, or your construction pipeline |
+| 2. **Audit** | **Multilinear “microscope”**: $\|\cdot\|_{G(k,\ell)}$, auto exact vs MC, pipe JSON | **This repo** (`grid_norm.py`, `--pipe`, `--sweep-k-max`) |
+| 3. **Visualize** | **Bohr / container geometry** (where the paper’s soft structure lives) | Bohr-set / visualizer repo *(add link in your fork)* |
+| 4. **Apply** | **Communication complexity** payoff (Exactly-$N$, NOF reductions) | Application repo *(add link in your fork)* |
+
+Visitors landing on **any** single repository should see where it sits in this chain; copy this subsection into sibling READMEs and replace the placeholders with real URLs.
+
+### 15.2 Empirical boundary: phase-style $k$-sweep (§2.2 *spirit*, toy data)
+
+The proof shows that **larger** $G(2,k)$-type parameters (order $\log(1/\alpha)$) expose structure invisible at fixed $(2,2)$. As an **empirical diagnostic** (not a theorem), you can plot $\|\mathbf{1}_A\|_{G(k,\ell)}$ vs $k$ for two **same-density** masks — e.g. **Behrend raster** vs **uniform random** with the same $|A|$:
+
+```bash
+pip install -r requirements-dev.txt   # matplotlib
+python scripts/phase_transition_sweep.py --n 10 --l 2 --k-min 2 --k-max 5 --seed 0 \
+  --out docs/images/phase-transition-behrend-vs-random.png
+```
+
+**Caveats:** (i) Behrend’s set is **not** corner-free in $G\times G$; this is **not** the paper’s corner-free vs random experiment. (ii) Large $n,k$ with **exact** enumeration can take minutes — shrink `--n` / `--k-max` for a quick plot. (iii) Any “crossover” $k$ you see is a **finite-grid artifact** to compare with the paper’s suggested scale $\lceil\ln(1/\alpha)\rceil$, not a proof of a density increment.
+
+<div align="center">
+<img src="docs/images/phase-transition-behrend-vs-random.png" alt="Phase style sweep Behrend vs random grid norm versus k" width="720"/>
+</div>
+
+<p align="center"><sub><b>Figure 8 (empirical).</b> Example output of <code>phase_transition_sweep.py</code> (regenerate locally; parameters may differ).</sub></p>
+
+### 15.3 Communication complexity, diagonal $D$, and spreadness (scope boundary)
+
+The paper’s **NOF / Exactly-$N$** corollaries (see §7–8 and related discussion of **spreadness** and **encoding**) involve bookkeeping that **this grid-norm lab does not implement**. In particular, choices about the **diagonal** $D$ and whether one enforces **algebraic** vs **relaxed ($\ell_1$-type)** spreadness affect whether auxiliary protocols stay in a **quasipolynomial** message regime rather than **tower-type** overheads — that is a property of the **communication-side reduction**, not of $\|\cdot\|_{G(k,\ell)}$ on a bitmap alone.
+
+**Documentation expectation:** the repository that owns the **Exactly-$N$ / NOF** reduction should contain an explicit note on how $D$ is treated and why the chosen spreadness notion matches the paper’s complexity target. **This repository** documents only **grid norms**, **masks**, and the **auto MC / exact** guardrails above; it does not replace §7.1’s protocol-level analysis.
+
+**On claims:** arXiv:2504.07006 gives a **quasipolynomial** upper bound for **corner-free** sets and derives **communication** consequences. Reproducing those theorems in code is **out of scope** here; the tools above are for **reproducible experimentation** and **cross-repo auditing**, not for a formal “proof certificate.”
