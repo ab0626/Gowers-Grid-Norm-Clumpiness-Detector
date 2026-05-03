@@ -330,8 +330,11 @@ The implementation chooses $S$ from `behrend_indices(3n-2)` (integer AP-free she
 
 | Mode | Function / script | Pros | Cons |
 |------|---------------------|------|------|
-| Monte Carlo | `grid_norm(..., method="mc", n_samples=…)` | Large $n,k,\ell$ | Sparse $\alpha$: $\prod_{i,j}A_{x_i,y_j}$ is often $0$ $\Rightarrow$ high variance |
+| **Auto** (default in demos) | `grid_norm(..., method="auto", …)` | Uses **exact** enumeration when $n^k m^\ell$ is at most `min(max_tuples, exact_auto_max_tuples)` (default $10^7$ for the latter); else MC and may append a variance string to `out_warnings` | MC branch still noisy if $\alpha$ is tiny and `n_samples` is modest |
+| Monte Carlo | `grid_norm(..., method="mc", n_samples=…)` | Large $n,k,\ell$ | Sparse $\alpha$: products often $0$ $\Rightarrow$ high variance (cf. §3.5) |
 | Exact | `grid_norm_exact(f,k,ell,max_tuples=…)` | **Zero** sampling noise | Hard cap: refuses if $n^k m^\ell >$ `max_tuples` |
+
+**Signed balanced $f_A$:** `grid_norm(..., negative_power_handling="clip_nonneg" | "abs_then_root" | "nan_if_negative")` documents how the $(k\ell)$-th root is taken when $\mathbb E[\prod f]$ is negative (§4 / density-increment style positivity vs raw multilinear magnitude).
 
 See **Figure 5**.
 
@@ -355,6 +358,17 @@ python behrend.py
 python corner_lift.py
 python exact_g2k.py --n 8 --seed 0 --max-tuples 25000000 --k-cap 8
 ```
+
+**`grid_norm_pipe_v1` JSON (cross-tool audit):** export a matrix from Behrend, then score it with the grid-norm CLI.
+
+```bash
+python behrend.py --export-pipe behrend_mask.json -n 8
+python grid_norm.py --pipe behrend_mask.json --k 2 --l 2 --method auto
+# optional: progressive k′ sweep (paper-style “hidden structure” at larger k′)
+python grid_norm.py --pipe behrend_mask.json --l 2 --method auto --sweep-k-max 5
+```
+
+JSON schema: keys `format` (`grid_norm_pipe_v1`), `version`, `matrix` (rectangular), optional `meta`. Programmatic: `write_grid_norm_pipe_v1` / `load_grid_norm_pipe_v1` in `grid_norm.py`.
 
 <details>
 <summary><b><code>exact_g2k.py</code> flags</b></summary>

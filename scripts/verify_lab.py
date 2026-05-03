@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -24,6 +25,26 @@ def run(cmd: list[str]) -> None:
 def main() -> None:
     py = sys.executable
     run([py, str(ROOT / "grid_norm.py")])
+    with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
+        pipe_path = tmp.name
+    try:
+        run([py, str(ROOT / "behrend.py"), "--export-pipe", pipe_path, "-n", "5"])
+        run(
+            [
+                py,
+                str(ROOT / "grid_norm.py"),
+                "--pipe",
+                pipe_path,
+                "--k",
+                "2",
+                "--l",
+                "2",
+                "--method",
+                "auto",
+            ]
+        )
+    finally:
+        Path(pipe_path).unlink(missing_ok=True)
     run([py, str(ROOT / "behrend.py")])
     run([py, str(ROOT / "corner_lift.py")])
     run([py, str(ROOT / "exact_g2k.py"), "--n", "7", "--k-cap", "4"])

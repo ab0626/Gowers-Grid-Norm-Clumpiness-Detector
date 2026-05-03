@@ -21,6 +21,8 @@ jobs:
       - name: Demos (smoke)
         run: |
           python grid_norm.py
+          python behrend.py --export-pipe /tmp/behrend_pipe.json -n 6
+          python grid_norm.py --pipe /tmp/behrend_pipe.json --k 2 --l 2 --method auto
           python behrend.py
           python corner_lift.py
           python exact_g2k.py --n 7 --k-cap 4

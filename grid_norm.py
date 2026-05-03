@@ -13,12 +13,24 @@ For [0,1]-valued f this is a multilinear average (a "box norm" when k=ℓ=2).
 
 from __future__ import annotations
 
+import json
 import math
 import random
+import sys
 from dataclasses import dataclass
-from typing import Optional, Sequence, Tuple
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
+
+PIPE_FORMAT = "grid_norm_pipe_v1"
+"""JSON tag consumed by ``load_grid_norm_pipe_v1`` / ``write_grid_norm_pipe_v1``."""
+
+DEFAULT_EXACT_AUTO_MAX_TUPLES = 10**7
+"""If ``n^k m^ℓ`` is at most this (and ≤ ``max_tuples``), ``method='auto'`` picks exact."""
+
+MIN_EFFECTIVE_MC_PRODUCTS = 30.0
+"""Heuristic floor for ``n_samples × α^{kℓ}`` before emitting an MC variance advisory."""
 
 
 def suggested_grid_size_from_density(alpha: float) -> Tuple[int, int]:
@@ -54,13 +66,17 @@ def grid_norm_power_kl(
     rng: Optional[random.Random] = None,
     n_samples: int = 50_000,
     method: str = "mc",
+    max_tuples: int = 25_000_000,
+    exact_auto_max_tuples: int = DEFAULT_EXACT_AUTO_MAX_TUPLES,
+    out_warnings: Optional[List[str]] = None,
 ) -> float:
     """
     Estimate ‖f‖_{G(k,ℓ)}^{kℓ} = E[∏_{i,j} f(x_i, y_j)].
 
     method:
-      - "mc": Monte Carlo (default), unbiased for the expectation inside the kℓ-th root
-      - "exact": exact enumeration O(n^k m^l); only feasible for tiny grids
+      - ``"mc"``: Monte Carlo (default), unbiased for the expectation inside the kℓ-th root
+      - ``"exact"``: exact enumeration O(n^k m^ℓ); only feasible for tiny grids
+      - ``"auto"``: exact iff ``n^k m^ℓ ≤ min(max_tuples, exact_auto_max_tuples)``, else MC
     """
     if k < 1 or l < 1:
         raise ValueError("k and l must be positive")
@@ -70,8 +86,21 @@ def grid_norm_power_kl(
     n, m = f.shape
     rng = rng or random.Random()
 
-    if method == "exact":
+    resolved = resolve_grid_norm_method(
+        n, m, k, l, method=method, max_tuples=max_tuples, exact_auto_max_tuples=exact_auto_max_tuples
+    )
+    if resolved == "exact":
+        cnt = exact_grid_norm_tuple_count(n, m, k, l)
+        if cnt > max_tuples:
+            raise ValueError(
+                f"auto/exact grid norm would enumerate {cnt} tuples (> max_tuples={max_tuples})"
+            )
         return _grid_norm_power_exact(f, k, l)
+
+    if out_warnings is not None:
+        w = mc_variance_advisory(f, k, l, n_samples)
+        if w is not None:
+            out_warnings.append(w)
 
     acc = 0.0
     for _ in range(n_samples):
@@ -89,10 +118,44 @@ def grid_norm(
     rng: Optional[random.Random] = None,
     n_samples: int = 50_000,
     method: str = "mc",
+    max_tuples: int = 25_000_000,
+    exact_auto_max_tuples: int = DEFAULT_EXACT_AUTO_MAX_TUPLES,
+    negative_power_handling: str = "clip_nonneg",
+    out_warnings: Optional[List[str]] = None,
 ) -> float:
-    """‖f‖_{G(k,ℓ)} = (E[∏ f(x_i,y_j)])^{1/(kℓ)}."""
-    power = grid_norm_power_kl(f, k, l, rng=rng, n_samples=n_samples, method=method)
+    """
+    ``‖f‖_{G(k,ℓ)} = (E[∏ f(x_i,y_j)])^{1/(kℓ)}``.
+
+    For signed ``f`` (e.g. balanced ``1_A-α``), the multilinear average ``power`` can be
+    negative. ``negative_power_handling`` controls the real ``(kℓ)``-th root step:
+
+    - ``clip_nonneg`` (default): ``max(0, power)`` then root — nonnegative norm; matches
+      nonnegative-indicator usage in the paper’s density-increment discussion when only
+      magnitudes matter for clumping demos.
+    - ``abs_then_root``: ``|power|^{1/(kℓ)}`` — magnitude of the multilinear average (Gowers
+      box-type control on absolute value).
+    - ``nan_if_negative``: return ``nan`` when ``power < 0`` (no ad-hoc clipping).
+    """
+    if negative_power_handling not in ("clip_nonneg", "abs_then_root", "nan_if_negative"):
+        raise ValueError(
+            "negative_power_handling must be 'clip_nonneg', 'abs_then_root', or 'nan_if_negative'"
+        )
+    power = grid_norm_power_kl(
+        f,
+        k,
+        l,
+        rng=rng,
+        n_samples=n_samples,
+        method=method,
+        max_tuples=max_tuples,
+        exact_auto_max_tuples=exact_auto_max_tuples,
+        out_warnings=out_warnings,
+    )
     if power < 0:
+        if negative_power_handling == "nan_if_negative":
+            return float("nan")
+        if negative_power_handling == "abs_then_root":
+            return abs(power) ** (1.0 / (k * l))
         power = 0.0
     return power ** (1.0 / (k * l))
 
@@ -102,6 +165,111 @@ def exact_grid_norm_tuple_count(n_rows: int, n_cols: int, k: int, l: int) -> int
     if k < 0 or l < 0:
         raise ValueError("k and l must be nonnegative")
     return (n_rows**k) * (n_cols**l)
+
+
+def resolve_grid_norm_method(
+    n: int,
+    m: int,
+    k: int,
+    l: int,
+    *,
+    method: str,
+    max_tuples: int,
+    exact_auto_max_tuples: int,
+) -> str:
+    """
+    Resolve ``method='auto'`` to ``'exact'`` or ``'mc'``.
+
+    Exact is chosen iff ``n^k m^ℓ ≤ min(max_tuples, exact_auto_max_tuples)`` — the
+    same tuple budget that ``grid_norm_exact`` would enumerate (cf. multilinear
+    control, paper §5).
+    """
+    if method not in ("mc", "exact", "auto"):
+        raise ValueError("method must be 'mc', 'exact', or 'auto'")
+    if method != "auto":
+        return method
+    cnt = exact_grid_norm_tuple_count(n, m, k, l)
+    cap = min(int(max_tuples), int(exact_auto_max_tuples))
+    return "exact" if cnt <= cap else "mc"
+
+
+def mc_variance_advisory(
+    f: np.ndarray,
+    k: int,
+    l: int,
+    n_samples: int,
+) -> Optional[str]:
+    """
+    Emit a human-readable warning when Monte Carlo is likely very noisy in the
+    sparse {0,1} regime (heuristic: few expected ``∏ 1`` products per sample).
+    """
+    f = np.asarray(f, dtype=np.float64)
+    if f.ndim != 2 or k < 1 or l < 1 or n_samples < 1:
+        return None
+    alpha_eff = float(np.mean(np.clip(f, 0.0, 1.0)))
+    if alpha_eff <= 0.0:
+        return (
+            f"MC variance risk: α≈0 on support; products are almost always 0 for k={k}, l={l}. "
+            "Use exact/auto on a small grid or increase n_samples."
+        )
+    exp_hit = alpha_eff ** (k * l)
+    effective = n_samples * exp_hit
+    if effective >= MIN_EFFECTIVE_MC_PRODUCTS:
+        return None
+    eff_s = f"{effective:.3g}" if effective < 0.01 else f"{effective:.1f}"
+    return (
+        f"MC variance risk: expected ≈{eff_s} all-one products per run (α≈{alpha_eff:.4g}, k={k}, l={l}, "
+        f"n_samples={n_samples}). Prefer method='auto' or 'exact' when n^k m^ℓ is modest, "
+        "or raise --samples (cf. paper §3.5 / relative sifting — sparse multilinear averages are noisy)."
+    )
+
+
+def load_grid_norm_pipe_v1(path: str | Path) -> np.ndarray:
+    """
+    Load a ``grid_norm_pipe_v1`` JSON export (matrix of reals / {0,1} indicators).
+
+    Required keys: ``matrix`` (rectangular list-of-lists) or ``data`` with ``shape`` [n, m].
+    Optional: ``format`` must be ``grid_norm_pipe_v1`` if present.
+    """
+    p = Path(path)
+    raw: Dict[str, Any] = json.loads(p.read_text(encoding="utf-8"))
+    fmt = raw.get("format")
+    if fmt is not None and fmt != PIPE_FORMAT:
+        raise ValueError(f"unknown pipe format {fmt!r}; expected {PIPE_FORMAT!r}")
+    mat = raw.get("matrix")
+    if mat is None:
+        mat = raw.get("data")
+    if mat is None:
+        raise ValueError("pipe JSON must contain 'matrix' or 'data'")
+    arr = np.asarray(mat, dtype=np.float64)
+    if arr.ndim == 1:
+        shape = raw.get("shape")
+        if shape is None or len(shape) != 2:
+            raise ValueError("1d 'data' requires integer 'shape': [n_rows, n_cols]")
+        arr = arr.reshape(int(shape[0]), int(shape[1]))
+    if arr.ndim != 2:
+        raise ValueError("matrix must be 2-dimensional")
+    return arr
+
+
+def write_grid_norm_pipe_v1(
+    path: str | Path,
+    f: np.ndarray,
+    *,
+    meta: Optional[Dict[str, Any]] = None,
+) -> None:
+    """Write ``grid_norm_pipe_v1`` JSON for ``load_grid_norm_pipe_v1`` / external tools."""
+    f = np.asarray(f, dtype=np.float64)
+    if f.ndim != 2:
+        raise ValueError("f must be 2D")
+    payload = {
+        "format": PIPE_FORMAT,
+        "version": 1,
+        "matrix": f.tolist(),
+        "shape": [int(f.shape[0]), int(f.shape[1])],
+        "meta": meta or {},
+    }
+    Path(path).write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
 def _grid_norm_power_exact(f: np.ndarray, k: int, l: int) -> float:
@@ -137,15 +305,16 @@ def grid_norm_exact(
             f"exact grid norm would enumerate {cnt} tuples (> max_tuples={max_tuples}); "
             f"shrink the grid or (k,ℓ)."
         )
-    return grid_norm(f, k, l, method="exact")
+    return grid_norm(f, k, l, method="exact", max_tuples=max_tuples)
 
 
 def balanced_indicator(mask: np.ndarray) -> np.ndarray:
     """
     Balanced {0,1} indicator: f = 1_A - α with α = |A|/|Ω| (mean zero on the grid).
-    Values in [-α, 1-α]; grid norm is still well-defined but can be negative inside
-    the kℓ-product expectation; we clip contributions in MC only for stability
-    when demonstrating clumpiness of *nonnegative* patterns — see `balanced_nonneg_clip`.
+    Values in [-α, 1-α]; the multilinear average E[∏f] can be **negative**.
+    For ``grid_norm(f,…)``, use ``negative_power_handling`` (``clip_nonneg``, ``abs_then_root``,
+    ``nan_if_negative``) to control the real ``(kℓ)``-th root step; for nonnegative MC demos
+    on ‖·‖, prefer ``balanced_nonneg_clip`` (§4 / density-increment style positivity in the paper).
     """
     mask = np.asarray(mask, dtype=np.float64)
     alpha = float(mask.mean())
@@ -277,30 +446,44 @@ def demo(
     k_sug, ell_sug = suggested_grid_size_from_density(alpha)
     # G(2,2) is the classical "box" norm; paper also uses G(2,p) with p ≳ log(1/(α δ_D)).
     k, ell = 2, 2
+    warns: List[str] = []
 
     rnd = random_binary_matrix(n, m, alpha, rng)
     clp = clumped_matrix(n, m, alpha, rng)
 
     # Paper uses nonnegative indicators on containers; ‖1_A‖_{G(k,ℓ)} detects clumping.
-    nr1 = grid_norm(rnd, k, ell, rng=rng, n_samples=n_samples)
-    nc1 = grid_norm(clp, k, ell, rng=rng, n_samples=n_samples)
+    # method="auto" uses exact enumeration on small tuple budgets (sparse-regime stability).
+    nr1 = grid_norm(
+        rnd, k, ell, rng=rng, n_samples=n_samples, method="auto", out_warnings=warns
+    )
+    nc1 = grid_norm(
+        clp, k, ell, rng=rng, n_samples=n_samples, method="auto", out_warnings=warns
+    )
     ks, es = min(k_sug, 3), min(ell_sug, 3)
     if ks != k or es != ell:
-        nr_s = grid_norm(rnd, ks, es, rng=rng, n_samples=n_samples)
-        nc_s = grid_norm(clp, ks, es, rng=rng, n_samples=n_samples)
+        nr_s = grid_norm(
+            rnd, ks, es, rng=rng, n_samples=n_samples, method="auto", out_warnings=warns
+        )
+        nc_s = grid_norm(
+            clp, ks, es, rng=rng, n_samples=n_samples, method="auto", out_warnings=warns
+        )
     else:
         nr_s = nc_s = float("nan")
     # Balanced f = 1_A − α is signed; we report ‖·‖ on affine clip to [0,1] for stable MC.
     f_r = np.clip(balanced_nonneg_clip(balanced_indicator(rnd)), 0.0, 1.0)
     f_c = np.clip(balanced_nonneg_clip(balanced_indicator(clp)), 0.0, 1.0)
-    nr = grid_norm(f_r, k, ell, rng=rng, n_samples=n_samples)
-    nc = grid_norm(f_c, k, ell, rng=rng, n_samples=n_samples)
+    nr = grid_norm(f_r, k, ell, rng=rng, n_samples=n_samples, method="auto", out_warnings=warns)
+    nc = grid_norm(f_c, k, ell, rng=rng, n_samples=n_samples, method="auto", out_warnings=warns)
 
     inc_r = best_rectangle_lift(rnd)
     inc_c = best_rectangle_lift(clp)
 
     print("Gowers grid norm demo (arXiv:2504.07006-style K_{k,ℓ} averaging)")
     print(f"  grid {n}x{m}, target density α={alpha:.3f}")
+    if warns:
+        print("  Notes (auto MC / variance):")
+        for w in dict.fromkeys(warns):
+            print(f"    • {w}")
     print(
         f"  paper-scale suggestion k ≈ log(1/α): ({k_sug},{ell_sug}); "
         f"demo computes ‖·‖_G(2,2) (box norm)"
@@ -317,5 +500,115 @@ def demo(
           f"density={inc_c.density_in_rect:.3f}, lift={inc_c.lift:.2f}x")
 
 
+def main_cli(argv: Optional[Sequence[str]] = None) -> None:
+    import argparse
+
+    argv = list(sys.argv[1:] if argv is None else argv)
+    p = argparse.ArgumentParser(
+        description=(
+            "Compute ‖f‖_{G(k,ℓ)} from a grid_norm_pipe_v1 JSON matrix "
+            "(use Behrend --export-pipe or write_grid_norm_pipe_v1)."
+        )
+    )
+    p.add_argument("--pipe", type=str, required=True, metavar="PATH", help="grid_norm_pipe_v1 JSON path")
+    p.add_argument("--k", type=int, default=2, help="left parameter k in K_{k,ℓ}")
+    p.add_argument("--l", type=int, default=2, help="right parameter ℓ in K_{k,ℓ}")
+    p.add_argument("--samples", type=int, default=80_000, help="Monte Carlo draws when method is mc")
+    p.add_argument(
+        "--method",
+        choices=("auto", "exact", "mc"),
+        default="auto",
+        help="auto: exact when n^k m^ℓ ≤ min(--max-tuples, --exact-auto-max); else MC",
+    )
+    p.add_argument(
+        "--exact-auto-max",
+        type=int,
+        default=DEFAULT_EXACT_AUTO_MAX_TUPLES,
+        metavar="N",
+        help="tuple budget threshold for auto-selecting exact enumeration",
+    )
+    p.add_argument(
+        "--max-tuples",
+        type=int,
+        default=25_000_000,
+        metavar="N",
+        help="hard refusal cap for exact enumeration (safety)",
+    )
+    p.add_argument(
+        "--negative-power",
+        choices=("clip_nonneg", "abs_then_root", "nan_if_negative"),
+        default="clip_nonneg",
+        help="how to take the (kℓ)-th root when E[∏f] < 0 (signed / balanced f)",
+    )
+    p.add_argument("--seed", type=int, default=0)
+    p.add_argument(
+        "--sweep-k-max",
+        type=int,
+        default=0,
+        metavar="K",
+        help="if ≥2, also print k′=2..K with fixed --l (progressive k′ sweep)",
+    )
+    args = p.parse_args(argv)
+
+    f = load_grid_norm_pipe_v1(args.pipe)
+    n, m = f.shape
+    rng = random.Random(args.seed)
+    cnt = exact_grid_norm_tuple_count(n, m, args.k, args.l)
+    resolved = resolve_grid_norm_method(
+        n,
+        m,
+        args.k,
+        args.l,
+        method=args.method,
+        max_tuples=args.max_tuples,
+        exact_auto_max_tuples=args.exact_auto_max,
+    )
+    warns: List[str] = []
+    v = grid_norm(
+        f,
+        args.k,
+        args.l,
+        rng=rng,
+        n_samples=args.samples,
+        method=args.method,
+        max_tuples=args.max_tuples,
+        exact_auto_max_tuples=args.exact_auto_max,
+        negative_power_handling=args.negative_power,
+        out_warnings=warns,
+    )
+    print(f"grid_norm_pipe: {args.pipe}  shape=({n},{m})  tuples=n^k m^l={cnt}")
+    print(f"method={args.method!r} → resolved={resolved!r}  ‖f‖_G({args.k},{args.l}) = {v}")
+    for w in warns:
+        print(f"NOTE: {w}")
+    if args.sweep_k_max >= 2:
+        print(f"progressive k-sweep (ℓ={args.l}, same JSON):")
+        for kk in range(2, args.sweep_k_max + 1):
+            if kk == args.k:
+                continue
+            wlist: List[str] = []
+            vv = grid_norm(
+                f,
+                kk,
+                args.l,
+                rng=rng,
+                n_samples=args.samples,
+                method=args.method,
+                max_tuples=args.max_tuples,
+                exact_auto_max_tuples=args.exact_auto_max,
+                negative_power_handling=args.negative_power,
+                out_warnings=wlist,
+            )
+            c = exact_grid_norm_tuple_count(n, m, kk, args.l)
+            r = resolve_grid_norm_method(
+                n, m, kk, args.l, method=args.method, max_tuples=args.max_tuples, exact_auto_max_tuples=args.exact_auto_max
+            )
+            print(f"  k′={kk}  tuples={c}  resolved={r!r}  ‖f‖_G({kk},{args.l})={vv}")
+            for w in wlist:
+                print(f"    NOTE: {w}")
+
+
 if __name__ == "__main__":
-    demo()
+    if len(sys.argv) > 1:
+        main_cli()
+    else:
+        demo()

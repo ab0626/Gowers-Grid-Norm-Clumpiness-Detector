@@ -10,6 +10,7 @@ sanity check alongside `random_binary_matrix`.
 
 from __future__ import annotations
 
+import argparse
 import math
 import random
 from itertools import product
@@ -17,7 +18,12 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 
-from grid_norm import grid_norm, suggested_grid_size_from_density
+from grid_norm import (
+    PIPE_FORMAT,
+    grid_norm,
+    suggested_grid_size_from_density,
+    write_grid_norm_pipe_v1,
+)
 
 
 def _value_from_digits(digits: Tuple[int, ...], q: int) -> int:
@@ -106,8 +112,8 @@ def compare_behrend_vs_random(
     ks = min(ks, 3)
     if alpha < 0.08:
         ks = min(ks, 2)
-    nb = grid_norm(B, ks, ks, rng=rng, n_samples=n_samples)
-    nr = grid_norm(rnd, ks, ks, rng=rng, n_samples=n_samples)
+    nb = grid_norm(B, ks, ks, rng=rng, n_samples=n_samples, method="auto")
+    nr = grid_norm(rnd, ks, ks, rng=rng, n_samples=n_samples, method="auto")
     return nb, nr, alpha, cnt, ks
 
 
@@ -118,5 +124,27 @@ def _print_compare(n: int = 10) -> None:
     print(f"  ‖1_Behrend‖ ≈ {nb:.5f}   ‖1_random‖ ≈ {nr:.5f}")
 
 
+def _main() -> None:
+    ap = argparse.ArgumentParser(description="Behrend shell vs random (grid norms)")
+    ap.add_argument("-n", "--n", type=int, default=10, help="grid side for n×n Behrend raster")
+    ap.add_argument(
+        "--export-pipe",
+        type=str,
+        metavar="PATH",
+        help=f"write Behrend n×n mask as {PIPE_FORMAT} JSON and exit",
+    )
+    args = ap.parse_args()
+    if args.export_pipe:
+        b = behrend_matrix(args.n)
+        write_grid_norm_pipe_v1(
+            args.export_pipe,
+            b,
+            meta={"source": "behrend_matrix", "n": args.n, "|A|": int(b.sum())},
+        )
+        print(f"Wrote {args.export_pipe!r} ({args.n}×{args.n}, |A|={int(b.sum())})")
+    else:
+        _print_compare(n=args.n)
+
+
 if __name__ == "__main__":
-    _print_compare()
+    _main()
