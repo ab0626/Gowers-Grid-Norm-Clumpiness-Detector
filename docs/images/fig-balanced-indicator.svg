@@ -1,13 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 200" width="760" height="200">
-  <style>
-    .t { font: 16px system-ui, Segoe UI, sans-serif; fill: #222; }
-    .h { font: 18px system-ui, Segoe UI, sans-serif; font-weight: 600; fill: #0b3d6d; }
-    .b { fill: #fff8e1; stroke: #f9a825; stroke-width: 2; rx: 8; }
-  </style>
   <rect width="100%" height="100%" fill="#fafafa"/>
-  <text x="20" y="36" class="h">Balanced indicator f_A = 5Ù_A  ±</text>
-  <rect x="30" y="60" width="700" height="110" class="b"/>
-  <text x="50" y="100" class="t">± = 5<[5Ù_A] = |A|/|©|. Mean zero: 5<[f_A]=0.</text>
-  <text x="50" y="130" class="t">Proof-side: lack of corners forces structure in f_A; MC demos often clip to [0,1] for nonnegative grid norms.</text>
-  <text x="50" y="158" class="t">Binary mask 5Ù_A: use grid_norm(mask, k, ) directly (entries in {0,1}).</text>
+  <text x="20" y="36" fill="#0b3d6d" font-family="Arial,Helvetica,sans-serif" font-size="18" font-weight="bold">Balanced indicator f_A = 1_A - alpha</text>
+  <rect x="30" y="60" width="700" height="110" fill="#fff8e1" stroke="#f9a825" stroke-width="2" rx="8"/>
+  <text x="50" y="100" fill="#222222" font-family="Arial,Helvetica,sans-serif" font-size="16">alpha = E[1_A] = |A|/|Omega|. Mean zero: E[f_A]=0.</text>
+  <text x="50" y="130" fill="#222222" font-family="Arial,Helvetica,sans-serif" font-size="16">Proof-side: corners vs structure in f_A; demos may clip to [0,1] for MC.</text>
+  <text x="50" y="158" fill="#222222" font-family="Arial,Helvetica,sans-serif" font-size="16">Binary 1_A: use grid_norm(mask,k,l) with entries in {0,1}.</text>
 </svg>

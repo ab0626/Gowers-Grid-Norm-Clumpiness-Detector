@@ -12,4 +12,6 @@ All paths are relative to the **repository root** (for example `docs/images/fig-
 | 6 | `fig-density-increment.svg` | Heuristic rectangle / density increment. |
 | 7 | `mask-lift-vs-random.png` | **Generated** — run `python scripts/export_mask_heatmaps.py` from repo root. |
 
-Vector figures are hand-authored SVG. The PNG is not required for tests to pass except the export smoke test, which writes to a temp path; for a **pretty README clone**, run the heatmap script once so `mask-lift-vs-random.png` exists here.
+Vector figures are hand-authored SVG. Each file starts with `<?xml ... encoding="UTF-8"?>` and uses **Arial + ASCII labels** inside the SVG so GitHub and other hosts render reliably (avoid raw subscripts / smart quotes in SVG text—they often corrupt on save).
+
+The PNG is not required for tests to pass except the export smoke test, which writes to a temp path; for a **pretty README clone**, run the heatmap script once so `mask-lift-vs-random.png` exists here.

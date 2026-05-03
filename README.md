@@ -33,6 +33,8 @@ This repository is a **small, fully documented experimental lab** for the **arit
 Gallery order: **geometry / norms** (Figures 1–3) → **proof-side object** (4) → **computation branches** (5) → **sifting toy** (6) → **empirical masks** (7).  
 See also [`docs/images/README.md`](docs/images/README.md) for a file manifest.
 
+**Rendering note:** Figures 1–6 are **SVG** with XML declarations and plain-text labels (no fragile Unicode subscripts inside the files) so they display consistently on [GitHub](https://github.com/ab0626/Gowers-Grid-Norm-Clumpiness-Detector). Figure 7 is **PNG**.
+
 <p align="center">
   <img src="docs/images/fig-corner-to-ap.svg" alt="Corner in the grid maps to a three-term arithmetic progression on the line under the x plus 2y lift" width="92%"/>
   <br/>
