@@ -11,7 +11,18 @@ def test_export_mask_heatmaps_script(tmp_path: Path) -> None:
     out = tmp_path / "out.png"
     script = ROOT / "scripts" / "export_mask_heatmaps.py"
     r = subprocess.run(
-        [sys.executable, str(script), "--n", "6", "--seed", "1", "--out", str(out)],
+        [
+            sys.executable,
+            str(script),
+            "--n",
+            "6",
+            "--scale",
+            "8",
+            "--seed",
+            "1",
+            "--out",
+            str(out),
+        ],
         cwd=str(ROOT),
         capture_output=True,
         text=True,
