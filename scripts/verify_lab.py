@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-One-shot local verification: demos, PNG figure, pytest.
+One-shot local verification: demos, README PNG figures, pytest.
 
 From repo root:
 
@@ -27,12 +27,15 @@ def main() -> None:
     run([py, str(ROOT / "behrend.py")])
     run([py, str(ROOT / "corner_lift.py")])
     run([py, str(ROOT / "exact_g2k.py"), "--n", "7", "--k-cap", "4"])
+    run([py, str(ROOT / "scripts" / "gen_readme_pngs.py")])
     run(
         [
             py,
             str(ROOT / "scripts" / "export_mask_heatmaps.py"),
             "--n",
             "16",
+            "--scale",
+            "14",
             "--seed",
             "0",
             "--out",

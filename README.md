@@ -33,48 +33,48 @@ This repository is a **small, fully documented experimental lab** for the **arit
 Gallery order: **geometry / norms** (Figures 1–3) → **proof-side object** (4) → **computation branches** (5) → **sifting toy** (6) → **empirical masks** (7).  
 See also [`docs/images/README.md`](docs/images/README.md) for a file manifest.
 
-**Rendering note:** Figures 1–6 are **SVG** with XML declarations and plain-text labels (no fragile Unicode subscripts inside the files) so they display consistently on [GitHub](https://github.com/ab0626/Gowers-Grid-Norm-Clumpiness-Detector). Figure 7 is **PNG**.
+**Rendering note:** Figures 1–7 use **PNG** in the README: GitHub’s Markdown `<img>` pipeline is **unreliable for `.svg`** (sanitization / CSP), so diagrams are rasterized for stable display. **Editable SVG sources** (where present) stay in `docs/images/`; regenerate bitmaps with `python scripts/gen_readme_pngs.py` and `python scripts/export_mask_heatmaps.py --scale 14`.
 
 <p align="center">
-  <img src="docs/images/fig-corner-to-ap.svg" alt="Corner in the grid maps to a three-term arithmetic progression on the line under the x plus 2y lift" width="92%"/>
+  <img src="docs/images/fig-corner-to-ap.png" alt="Corner in the grid maps to a three-term arithmetic progression on the line under the x plus 2y lift" width="720"/>
   <br/>
   <sub><b>Figure 1.</b> Corner \((x,y),(x+d,y),(x,y+d)\) \(\Rightarrow\) values \(z,z+d,z+2d\) for the lift \(z=x+2y\) (integer specialization).</sub>
 </p>
 
 <p align="center">
-  <img src="docs/images/fig-k22-bipartite.svg" alt="Complete bipartite graph K22 connecting two row vertices to two column vertices" width="92%"/>
+  <img src="docs/images/fig-k22-bipartite.png" alt="Complete bipartite graph K22 connecting two row vertices to two column vertices" width="760"/>
   <br/>
   <sub><b>Figure 2.</b> The \(K_{2,2}\) pattern behind the <b>box norm</b> \(G(2,2)\): four factors \(f(x_1,y_1)f(x_1,y_2)f(x_2,y_1)f(x_2,y_2)\).</sub>
 </p>
 
 <p align="center">
-  <img src="docs/images/fig-k2k-bipartite.svg" alt="Bipartite graph K2k with two left vertices and k right vertices" width="92%"/>
+  <img src="docs/images/fig-k2k-bipartite.png" alt="Bipartite graph K2k with two left vertices and k right vertices" width="820"/>
   <br/>
   <sub><b>Figure 3.</b> The \(K_{2,k}\) pattern for \(\|\cdot\|_{G(2,k)}\) (enumerated exactly by <code>exact_g2k.py</code> on toy grids).</sub>
 </p>
 
 <p align="center">
-  <img src="docs/images/fig-balanced-indicator.svg" alt="Balanced indicator f equals 1_A minus alpha" width="92%"/>
+  <img src="docs/images/fig-balanced-indicator.png" alt="Balanced indicator f equals 1_A minus alpha" width="760"/>
   <br/>
   <sub><b>Figure 4.</b> Balanced indicator \(f_A=\mathbf 1_A-\alpha\) (center of many proof estimates) vs raw \(\mathbf 1_A\) in demos.</sub>
 </p>
 
 <p align="center">
-  <img src="docs/images/fig-mc-vs-exact.svg" alt="Comparison of Monte Carlo branch versus exact enumeration branch" width="92%"/>
+  <img src="docs/images/fig-mc-vs-exact.png" alt="Comparison of Monte Carlo branch versus exact enumeration branch" width="780"/>
   <br/>
   <sub><b>Figure 5.</b> Two evaluation <b>branches</b>: Monte Carlo (scalable; sparse \(\alpha\) \(\Rightarrow\) noisy) vs exact (noise-free; tuple budget cap).</sub>
 </p>
 
 <p align="center">
-  <img src="docs/images/fig-density-increment.svg" alt="Grid with highlighted subrectangle for density increment heuristic" width="92%"/>
+  <img src="docs/images/fig-density-increment.png" alt="Grid with highlighted subrectangle for density increment heuristic" width="760"/>
   <br/>
   <sub><b>Figure 6.</b> Heuristic <code>best_rectangle_lift</code>: maximize rectangle density \(|A\cap R|/|R|\) vs global \(\alpha=|A|/|\Omega|\).</sub>
 </p>
 
 <p align="center">
-  <img src="docs/images/mask-lift-vs-random.png" alt="Side by side grayscale masks corner free lift versus uniform random same size" width="720"/>
+  <img src="docs/images/mask-lift-vs-random.png" alt="Side by side grayscale masks corner free lift versus uniform random same size" width="520"/>
   <br/>
-  <sub><b>Figure 7.</b> <b>Corner-free lift</b> vs <b>uniform random</b> with the same \(|A|\) (regenerate locally: <code>python scripts/export_mask_heatmaps.py --n 16 --seed 0</code>).</sub>
+  <sub><b>Figure 7.</b> <b>Corner-free lift</b> vs <b>uniform random</b> with the same \(|A|\). Regenerate: <code>python scripts/export_mask_heatmaps.py --n 16 --scale 14 --seed 0</code> (higher <code>--scale</code> = sharper cells).</sub>
 </p>
 
 ---
@@ -117,7 +117,7 @@ flowchart LR
     EX[exact_g2k.py]
   end
   subgraph Docs [Figures]
-    IM[docs/images/*.svg + mask-lift-vs-random.png]
+    IM[docs/images/*.png + gen_readme_pngs.py]
   end
   GN --> BE
   GN --> CL
@@ -422,17 +422,18 @@ python scripts/run_tests.py
 
 Configuration lives in `pytest.ini` (`pythonpath = .` so `import grid_norm` works without installing a package).
 
-`tests/test_readme_assets.py` asserts every `docs/images/...` reference in this README exists on disk (including **Figure 7**’s PNG after you run the exporter).
+`tests/test_readme_assets.py` asserts every `docs/images/...` reference in this README exists on disk (all **PNG** gallery files, including **Figure 7**).
 
-### 14.2 PNG heatmaps (optional)
+### 14.2 README bitmaps (Figures 1–7)
 
-Requires **Pillow** (included in `requirements-dev.txt`). The exporter uses **Pillow only** (no matplotlib) so it stays compatible with **NumPy 2.x** on typical installs.
+Requires **Pillow** (`requirements-dev.txt`). Regenerate after changing diagrams or masks:
 
 ```bash
-python scripts/export_mask_heatmaps.py --n 16 --seed 0
+python scripts/gen_readme_pngs.py
+python scripts/export_mask_heatmaps.py --n 16 --scale 14 --seed 0
 ```
 
-Default output: `docs/images/mask-lift-vs-random.png` (also shown as **Figure 7** in [§1](#1-visual-overview-figures)). Commit that PNG after generating so clones render the gallery without rerunning the script.
+Commit the resulting `docs/images/*.png` files so GitHub renders the gallery on clone. **`--scale`** controls pixel size per matrix cell for Figure 7 (avoid tiny source + huge HTML width).
 
 ### 14.3 One-shot local verification
 
@@ -440,8 +441,8 @@ Default output: `docs/images/mask-lift-vs-random.png` (also shown as **Figure 7*
 python scripts/verify_lab.py
 ```
 
-Runs the four demos, regenerates **Figure 7**, then `scripts/run_tests.py -v`.
+Runs the four demos, regenerates **Figures 1–7** PNGs, then `scripts/run_tests.py -v`.
 
 ### 14.4 GitHub Actions
 
-On push/PR to `main` or `master`, [`.github/workflows/ci.yml`](.github/workflows/ci.yml) installs `requirements-dev.txt`, runs the full test suite, smoke-runs the demos, and rebuilds `docs/images/mask-lift-vs-random.png` in CI so asset checks stay green.
+On push/PR to `main` or `master`, [`.github/workflows/ci.yml`](.github/workflows/ci.yml) installs `requirements-dev.txt`, runs the full test suite, smoke-runs the demos, and rebuilds all gallery **PNG**s so `test_readme_assets` stays green.

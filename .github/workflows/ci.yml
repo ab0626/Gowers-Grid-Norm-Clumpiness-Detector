@@ -24,4 +24,5 @@ jobs:
           python behrend.py
           python corner_lift.py
           python exact_g2k.py --n 7 --k-cap 4
-          python scripts/export_mask_heatmaps.py --n 10 --seed 0 --out docs/images/mask-lift-vs-random.png
+          python scripts/gen_readme_pngs.py
+          python scripts/export_mask_heatmaps.py --n 10 --scale 14 --seed 0 --out docs/images/mask-lift-vs-random.png
